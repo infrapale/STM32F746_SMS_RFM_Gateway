@@ -12,7 +12,7 @@
 
 #define VALUE_TEXT_LEN 20
 #define ASCII_CR 0x13
-#define ASCII_CR 0x10
+#define ASCII_LF 0x10
 
 
 enum console_priority {
@@ -29,5 +29,6 @@ void ConsoleWrChar(enum console_priority c_priority, char c);
 void ConsoleNewline(enum console_priority c_priority);
 void ConsoleWrDec(enum console_priority c_priority, char *pre_txt, uint16_t value ,char *post_txt, uint8_t newline);
 HAL_StatusTypeDef ConsoleRdChar( uint8_t *pData );
+HAL_StatusTypeDef ConsoleRdLn(uint8_t *pData, uint8_t max_len );
 
 #endif /* INC_CONSOLE_H_ */

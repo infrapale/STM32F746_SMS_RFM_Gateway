@@ -52,7 +52,7 @@ void ConsoleNewline(enum console_priority c_priority){
 }
 
 void ConsoleWrDec(enum console_priority c_priority, char *pre_txt, uint16_t value ,char *post_txt, uint8_t newline){
-	if (c_priority >= console.priority){
+	if CONSOLE_PRIORITY_IS_OK(c_priority){
 		char value_str[VALUE_TEXT_LEN];
 		sprintf(value_str,"%d", value);
 		HAL_UART_Transmit(console.p_uart, (uint8_t*)pre_txt, strlen(pre_txt),HAL_MAX_DELAY);

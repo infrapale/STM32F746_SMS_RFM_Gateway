@@ -19,9 +19,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
 #include "console.h"
 /* USER CODE END Includes */
 
@@ -45,7 +47,57 @@ UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for Sender1 */
+osThreadId_t Sender1Handle;
+const osThreadAttr_t Sender1_attributes = {
+  .name = "Sender1",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for Receiver */
+osThreadId_t ReceiverHandle;
+const osThreadAttr_t Receiver_attributes = {
+  .name = "Receiver",
+  .priority = (osPriority_t) osPriorityAboveNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for Sender2 */
+osThreadId_t Sender2Handle;
+const osThreadAttr_t Sender2_attributes = {
+  .name = "Sender2",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
+/* Definitions for Queue01 */
+osMessageQueueId_t Queue01Handle;
+const osMessageQueueAttr_t Queue01_attributes = {
+  .name = "Queue01"
+};
+/* Definitions for Queue02 */
+osMessageQueueId_t Queue02Handle;
+const osMessageQueueAttr_t Queue02_attributes = {
+  .name = "Queue02"
+};
+/* Definitions for TimerScanKeypad */
+osTimerId_t TimerScanKeypadHandle;
+const osTimerAttr_t TimerScanKeypad_attributes = {
+  .name = "TimerScanKeypad"
+};
 /* USER CODE BEGIN PV */
+typedef struct{
+	uint16_t Value;
+	uint8_t  Source;
+} Data;
+
+Data DataToSend1={0x2018,1};
+Data DataToSend2={0x2019,2};
 
 /* USER CODE END PV */
 
@@ -54,6 +106,12 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
+void StartDefaultTask(void *argument);
+void StartSender1(void *argument);
+void StartReceiver(void *argument);
+void StartSender2(void *argument);
+void CallbackScanKeypad(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,7 +157,9 @@ int main(void)
   uint8_t *pdata = cbuf;
   HAL_StatusTypeDef uart_status;
 
+
   ConsoleInitialize(&huart3);
+
   ConsoleWr(development, "https://github.com/infrapale/STM32F746_SMS_RFM_Gateway", 1);
   ConsoleWrDec(development, "Elaman tarkoitus on ", 42 ,".", 1);
 
@@ -120,6 +180,61 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of TimerScanKeypad */
+  TimerScanKeypadHandle = osTimerNew(CallbackScanKeypad, osTimerPeriodic, NULL, &TimerScanKeypad_attributes);
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of Queue01 */
+  Queue01Handle = osMessageQueueNew (256, sizeof(uint8_t), &Queue01_attributes);
+
+  /* creation of Queue02 */
+  Queue02Handle = osMessageQueueNew (16, sizeof(Data), &Queue02_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of Sender1 */
+  Sender1Handle = osThreadNew(StartSender1, NULL, &Sender1_attributes);
+
+  /* creation of Receiver */
+  ReceiverHandle = osThreadNew(StartReceiver, NULL, &Receiver_attributes);
+
+  /* creation of Sender2 */
+  Sender2Handle = osThreadNew(StartSender2, NULL, &Sender2_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -341,6 +456,142 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  osTimerStart(TimerScanKeypadHandle,100);
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartSender1 */
+/**
+* @brief Function implementing the Sender1 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartSender1 */
+void StartSender1(void *argument)
+{
+  /* USER CODE BEGIN StartSender1 */
+  uint8_t buf = 0x01;
+  /* Infinite loop */
+  for(;;)
+  {
+	  ConsoleWr(development, "Task 1 send..",0);
+	  //osMessageQueuePut(Queue01Handle,&buf,osPriorityNormal,200 );
+	  osMessageQueuePut(Queue02Handle,(uint32_t) &DataToSend1, (uint8_t*)osPriorityNormal,200 );
+	  ConsoleWr(development, "..sent",1);
+	  buf++;
+      osDelay(2000);
+  }
+  /* USER CODE END StartSender1 */
+}
+
+/* USER CODE BEGIN Header_StartReceiver */
+/**
+* @brief Function implementing the Receiver thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartReceiver */
+void StartReceiver(void *argument)
+{
+  /* USER CODE BEGIN StartReceiver */
+  osStatus_t retvalue;
+  //uint8_t buf[16];
+  Data    qitem;
+  /* Infinite loop */
+  for(;;)
+  {
+	  //retvalue = osMessageQueueGet(Queue01Handle,(uint8_t *)&buf,osPriorityNormal,4000);
+	  //ConsoleWrDec(development, "Received:", buf,">",1);
+	  retvalue = osMessageQueueGet(Queue02Handle,(uint16_t*)&qitem, (uint8_t*)osPriorityNormal, 4000);
+      if(retvalue == osOK){
+    	  ConsoleWr(development, "os call was OK",1);
+    	  if(qitem.Source == 1){
+    		 ConsoleWr(development, "Received from sender 1",1);
+    	  } else{
+        	 ConsoleWr(development, "Received from sender 2",1);
+          }
+          ConsoleWrDec(development, "Received value: ",qitem.Value,"",1);
+          if(retvalue == osOK){
+        	  ConsoleWr(development, "os call was OK",1);
+          }
+
+      } else{
+    	  ConsoleWr(development, "os call was NOT OK",1);
+      }
+
+
+  }
+  /* USER CODE END StartReceiver */
+}
+
+/* USER CODE BEGIN Header_StartSender2 */
+/**
+* @brief Function implementing the Sender2 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartSender2 */
+void StartSender2(void *argument)
+{
+  /* USER CODE BEGIN StartSender2 */
+  uint8_t buf;
+  /* Infinite loop */
+  for(;;)
+  {
+	  ConsoleWr(development, "Task 2 send..",0);
+	  //osMessageQueuePut(Queue01Handle,&buf,osPriorityNormal,200 );
+	  osMessageQueuePut(Queue02Handle,(uint32_t)&DataToSend2, (uint8_t*)osPriorityNormal,200 );
+	  ConsoleWr(development, "..sent",1);
+	  buf--;
+      osDelay(2000);
+  }
+  /* USER CODE END StartSender2 */
+}
+
+/* CallbackScanKeypad function */
+void CallbackScanKeypad(void *argument)
+{
+  /* USER CODE BEGIN CallbackScanKeypad */
+
+  /* USER CODE END CallbackScanKeypad */
+}
+
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM7 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM7) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
