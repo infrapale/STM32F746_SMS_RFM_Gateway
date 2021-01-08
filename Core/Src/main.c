@@ -24,7 +24,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
+#include <stdio.h>
+#include <string.h>
 #include "console.h"
+#include "msg.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,41 +57,78 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
-/* Definitions for Sender1 */
-osThreadId_t Sender1Handle;
-const osThreadAttr_t Sender1_attributes = {
-  .name = "Sender1",
+/* Definitions for SendRadio */
+osThreadId_t SendRadioHandle;
+const osThreadAttr_t SendRadio_attributes = {
+  .name = "SendRadio",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
-/* Definitions for Receiver */
-osThreadId_t ReceiverHandle;
-const osThreadAttr_t Receiver_attributes = {
-  .name = "Receiver",
+/* Definitions for ReceiveRadio */
+osThreadId_t ReceiveRadioHandle;
+const osThreadAttr_t ReceiveRadio_attributes = {
+  .name = "ReceiveRadio",
   .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 128 * 4
 };
-/* Definitions for Sender2 */
-osThreadId_t Sender2Handle;
-const osThreadAttr_t Sender2_attributes = {
-  .name = "Sender2",
+/* Definitions for SendSms */
+osThreadId_t SendSmsHandle;
+const osThreadAttr_t SendSms_attributes = {
+  .name = "SendSms",
   .priority = (osPriority_t) osPriorityLow,
   .stack_size = 128 * 4
 };
-/* Definitions for Queue01 */
-osMessageQueueId_t Queue01Handle;
-const osMessageQueueAttr_t Queue01_attributes = {
-  .name = "Queue01"
+/* Definitions for ReceiveSms */
+osThreadId_t ReceiveSmsHandle;
+const osThreadAttr_t ReceiveSms_attributes = {
+  .name = "ReceiveSms",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 128 * 4
+};
+/* Definitions for SendRadioQueue */
+osMessageQueueId_t SendRadioQueueHandle;
+const osMessageQueueAttr_t SendRadioQueue_attributes = {
+  .name = "SendRadioQueue"
 };
 /* Definitions for Queue02 */
 osMessageQueueId_t Queue02Handle;
 const osMessageQueueAttr_t Queue02_attributes = {
   .name = "Queue02"
 };
+/* Definitions for ReceiveRadioQueue */
+osMessageQueueId_t ReceiveRadioQueueHandle;
+const osMessageQueueAttr_t ReceiveRadioQueue_attributes = {
+  .name = "ReceiveRadioQueue"
+};
+/* Definitions for SendSmsQueue */
+osMessageQueueId_t SendSmsQueueHandle;
+const osMessageQueueAttr_t SendSmsQueue_attributes = {
+  .name = "SendSmsQueue"
+};
+/* Definitions for ReceiveSmsQueue */
+osMessageQueueId_t ReceiveSmsQueueHandle;
+const osMessageQueueAttr_t ReceiveSmsQueue_attributes = {
+  .name = "ReceiveSmsQueue"
+};
 /* Definitions for TimerScanKeypad */
 osTimerId_t TimerScanKeypadHandle;
 const osTimerAttr_t TimerScanKeypad_attributes = {
   .name = "TimerScanKeypad"
+};
+/* Definitions for MsgHandlerSema */
+osSemaphoreId_t MsgHandlerSemaHandle;
+const osSemaphoreAttr_t MsgHandlerSema_attributes = {
+  .name = "MsgHandlerSema"
+};
+/* Definitions for SmsHandlerSema */
+osSemaphoreId_t SmsHandlerSemaHandle;
+const osSemaphoreAttr_t SmsHandlerSema_attributes = {
+  .name = "SmsHandlerSema"
+};
+/* Definitions for RadioHandlerSema */
+osSemaphoreId_t RadioHandlerSemaHandle;
+const osSemaphoreAttr_t RadioHandlerSema_attributes = {
+  .name = "RadioHandlerSema"
 };
 /* USER CODE BEGIN PV */
 typedef struct{
@@ -107,9 +147,10 @@ static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 void StartDefaultTask(void *argument);
-void StartSender1(void *argument);
-void StartReceiver(void *argument);
-void StartSender2(void *argument);
+void StartSendRadio(void *argument);
+void StartReceiveRadio(void *argument);
+void StartSendSms(void *argument);
+void StartReceiveSms(void *argument);
 void CallbackScanKeypad(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -153,9 +194,10 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
+  msg_initialize();
   uint8_t cbuf[32];
-  uint8_t *pdata = cbuf;
-  HAL_StatusTypeDef uart_status;
+  //uint8_t *pdata = cbuf;
+  //HAL_StatusTypeDef uart_status;
 
 
   ConsoleInitialize(&huart3);
@@ -163,8 +205,9 @@ int main(void)
   ConsoleWr(development, "https://github.com/infrapale/STM32F746_SMS_RFM_Gateway", 1);
   ConsoleWrDec(development, "Elaman tarkoitus on ", 42 ,".", 1);
 
-  ConsoleRdLn(pdata, 10 );
-  ConsoleWr(development, pdata, 1);
+  ConsoleWrDec(development, "Free messages= ", msg_free_rows(),".", 1);
+  /*ConsoleRdLn(pdata, 10 );
+  ConsoleWr(development, (char *)pdata, 1U);
 
   uart_status = ConsoleRdChar( pdata );
   if (uart_status == HAL_OK) {
@@ -174,8 +217,7 @@ int main(void)
 	  ConsoleWrDec(development, "HAL status", uart_status ,"!", 1);
 
   }
-
-
+  */
 
 
   /* USER CODE END 2 */
@@ -186,6 +228,16 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of MsgHandlerSema */
+  MsgHandlerSemaHandle = osSemaphoreNew(1, 1, &MsgHandlerSema_attributes);
+
+  /* creation of SmsHandlerSema */
+  SmsHandlerSemaHandle = osSemaphoreNew(1, 1, &SmsHandlerSema_attributes);
+
+  /* creation of RadioHandlerSema */
+  RadioHandlerSemaHandle = osSemaphoreNew(1, 1, &RadioHandlerSema_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -200,11 +252,20 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
-  /* creation of Queue01 */
-  Queue01Handle = osMessageQueueNew (256, sizeof(uint8_t), &Queue01_attributes);
+  /* creation of SendRadioQueue */
+  SendRadioQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &SendRadioQueue_attributes);
 
   /* creation of Queue02 */
   Queue02Handle = osMessageQueueNew (16, sizeof(Data), &Queue02_attributes);
+
+  /* creation of ReceiveRadioQueue */
+  ReceiveRadioQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &ReceiveRadioQueue_attributes);
+
+  /* creation of SendSmsQueue */
+  SendSmsQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &SendSmsQueue_attributes);
+
+  /* creation of ReceiveSmsQueue */
+  ReceiveSmsQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &ReceiveSmsQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -214,14 +275,17 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of Sender1 */
-  Sender1Handle = osThreadNew(StartSender1, NULL, &Sender1_attributes);
+  /* creation of SendRadio */
+  SendRadioHandle = osThreadNew(StartSendRadio, NULL, &SendRadio_attributes);
 
-  /* creation of Receiver */
-  ReceiverHandle = osThreadNew(StartReceiver, NULL, &Receiver_attributes);
+  /* creation of ReceiveRadio */
+  ReceiveRadioHandle = osThreadNew(StartReceiveRadio, NULL, &ReceiveRadio_attributes);
 
-  /* creation of Sender2 */
-  Sender2Handle = osThreadNew(StartSender2, NULL, &Sender2_attributes);
+  /* creation of SendSms */
+  SendSmsHandle = osThreadNew(StartSendSms, NULL, &SendSms_attributes);
+
+  /* creation of ReceiveSms */
+  ReceiveSmsHandle = osThreadNew(StartReceiveSms, NULL, &ReceiveSms_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -476,92 +540,104 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartSender1 */
+/* USER CODE BEGIN Header_StartSendRadio */
 /**
-* @brief Function implementing the Sender1 thread.
+* @brief Function implementing the SendRadio thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartSender1 */
-void StartSender1(void *argument)
+/* USER CODE END Header_StartSendRadio */
+void StartSendRadio(void *argument)
 {
-  /* USER CODE BEGIN StartSender1 */
-  uint8_t buf = 0x01;
+  /* USER CODE BEGIN StartSendRadio */
   /* Infinite loop */
   for(;;)
   {
-	  ConsoleWr(development, "Task 1 send..",0);
-	  //osMessageQueuePut(Queue01Handle,&buf,osPriorityNormal,200 );
-	  osMessageQueuePut(Queue02Handle,(uint32_t) &DataToSend1, (uint8_t*)osPriorityNormal,200 );
-	  ConsoleWr(development, "..sent",1);
-	  buf++;
-      osDelay(2000);
+    osDelay(1);
   }
-  /* USER CODE END StartSender1 */
+  /* USER CODE END StartSendRadio */
 }
 
-/* USER CODE BEGIN Header_StartReceiver */
+/* USER CODE BEGIN Header_StartReceiveRadio */
 /**
-* @brief Function implementing the Receiver thread.
+* @brief Function implementing the ReceiveRadio thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartReceiver */
-void StartReceiver(void *argument)
+/* USER CODE END Header_StartReceiveRadio */
+void StartReceiveRadio(void *argument)
 {
-  /* USER CODE BEGIN StartReceiver */
-  osStatus_t retvalue;
-  //uint8_t buf[16];
-  Data    qitem;
+  /* USER CODE BEGIN StartReceiveRadio */
+  uint8_t  rx_buf[ MAX_MSG_LEN];
+  memset(rx_buf,0x00,sizeof(rx_buf));
   /* Infinite loop */
   for(;;)
   {
-	  //retvalue = osMessageQueueGet(Queue01Handle,(uint8_t *)&buf,osPriorityNormal,4000);
-	  //ConsoleWrDec(development, "Received:", buf,">",1);
-	  retvalue = osMessageQueueGet(Queue02Handle,(uint16_t*)&qitem, (uint8_t*)osPriorityNormal, 4000);
-      if(retvalue == osOK){
-    	  ConsoleWr(development, "os call was OK",1);
-    	  if(qitem.Source == 1){
-    		 ConsoleWr(development, "Received from sender 1",1);
-    	  } else{
-        	 ConsoleWr(development, "Received from sender 2",1);
-          }
-          ConsoleWrDec(development, "Received value: ",qitem.Value,"",1);
-          if(retvalue == osOK){
-        	  ConsoleWr(development, "os call was OK",1);
-          }
 
-      } else{
-    	  ConsoleWr(development, "os call was NOT OK",1);
-      }
-
-
+      osDelay(1);
   }
-  /* USER CODE END StartReceiver */
+  /* USER CODE END StartReceiveRadio */
 }
 
-/* USER CODE BEGIN Header_StartSender2 */
+/* USER CODE BEGIN Header_StartSendSms */
 /**
-* @brief Function implementing the Sender2 thread.
+* @brief Function implementing the SendSms thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartSender2 */
-void StartSender2(void *argument)
+/* USER CODE END Header_StartSendSms */
+void StartSendSms(void *argument)
 {
-  /* USER CODE BEGIN StartSender2 */
-  uint8_t buf;
+  /* USER CODE BEGIN StartSendSms */
   /* Infinite loop */
   for(;;)
   {
-	  ConsoleWr(development, "Task 2 send..",0);
-	  //osMessageQueuePut(Queue01Handle,&buf,osPriorityNormal,200 );
-	  osMessageQueuePut(Queue02Handle,(uint32_t)&DataToSend2, (uint8_t*)osPriorityNormal,200 );
-	  ConsoleWr(development, "..sent",1);
-	  buf--;
-      osDelay(2000);
+    osDelay(1);
   }
-  /* USER CODE END StartSender2 */
+  /* USER CODE END StartSendSms */
+}
+
+/* USER CODE BEGIN Header_StartReceiveSms */
+/**
+* @brief Function implementing the ReceiveSms thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartReceiveSms */
+void StartReceiveSms(void *argument)
+{
+  /* USER CODE BEGIN StartReceiveSms */
+    uint8_t  sms_in_buf[ MAX_MSG_LEN];
+    uint8_t  c;
+    HAL_StatusTypeDef uart_status;
+
+    ConsoleWr(development, "StartReceiveSms", 1);
+	memset(sms_in_buf,0x00,sizeof(sms_in_buf));
+
+
+	/* Infinite loop */
+	for(;;)
+	{
+		/*
+	    uart_status = HAL_UART_Receive(&huart3, sms_in_buf, 1, 0);
+	    switch (uart_status){
+	    case HAL_OK:
+	    	ConsoleWrChar(application,  sms_in_buf[0]);
+	    	break;
+	    case  HAL_ERROR:
+	    	ConsoleWr(development, "HAL_ERROR", 1);
+	    	break;
+	    case  HAL_BUSY:
+	    	ConsoleWr(development, "HAL_BUSY", 1);
+	    	break;
+	    case  HAL_TIMEOUT:
+	    	break;
+	    }
+
+ 	    osDelay(1);
+ 	    */
+	}
+  /* USER CODE END StartReceiveSms */
 }
 
 /* CallbackScanKeypad function */

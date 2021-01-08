@@ -1,8 +1,8 @@
-console.c:23:6:ConsoleInitialize	16	static
-console.c:28:6:ConsoleSetPriority	16	static
-console.c:32:6:ConsoleWr	24	static
-console.c:42:6:ConsoleWrChar	16	static
-console.c:48:6:ConsoleNewline	16	static
-console.c:54:6:ConsoleWrDec	56	static
-console.c:78:19:ConsoleRdChar	24	static
-console.c:85:19:ConsoleRdLn	24	static
+console.c:26:6:ConsoleInitialize	16	static
+console.c:31:6:ConsoleSetPriority	16	static
+console.c:35:6:ConsoleWr	24	static
+console.c:45:6:ConsoleWrChar	16	static
+console.c:51:6:ConsoleNewline	16	static
+console.c:57:6:ConsoleWrDec	56	static
+console.c:81:19:ConsoleRdChar	24	static
+console.c:88:19:ConsoleRdLn	24	static

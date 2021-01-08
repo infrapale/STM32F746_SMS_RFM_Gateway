@@ -3,6 +3,9 @@
  *
  *  Created on: Jan 6, 2021
  *      Author: tom_h
+ *
+ *      https://visualgdb.com/tutorials/arm/stm32/uart/hal/
+ *      https://programming.vip/docs/stm32-hal-library-learning-serial-idle-interrupt.html
  */
 #include <main.h>
 #include <console.h>
@@ -41,7 +44,7 @@ void ConsoleWr(enum console_priority c_priority, char *txt, uint8_t newline){
 
 void ConsoleWrChar(enum console_priority c_priority, char c){
 	if CONSOLE_PRIORITY_IS_OK(c_priority){
-		HAL_UART_Transmit(console.p_uart, &c, 1,HAL_MAX_DELAY);
+		HAL_UART_Transmit(console.p_uart, (char *) &c, 1,HAL_MAX_DELAY);
 	}
 }
 

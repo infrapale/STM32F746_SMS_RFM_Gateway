@@ -650,6 +650,7 @@ __weak void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(huart);
+  __HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
 
   /* NOTE : This function should not be modified, when the callback is needed,
             the HAL_UART_MspInit can be implemented in the user file
