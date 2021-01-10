@@ -1,4 +1,4 @@
-msg.c:17:6:msg_initialize	8	static
-msg.c:21:9:msg_free_rows	16	static
-msg.c:31:17:msg_reserve	24	static
-msg.c:49:17:msg_get_handle	16	static
+msg.c:16:6:msg_initialize	8	static
+msg.c:20:9:msg_free_rows	16	static
+msg.c:30:17:msg_reserve	24	static
+msg.c:48:17:msg_get_handle	16	static

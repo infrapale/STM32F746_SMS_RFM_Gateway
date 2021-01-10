@@ -6,6 +6,8 @@
  *
  *      https://visualgdb.com/tutorials/arm/stm32/uart/hal/
  *      https://programming.vip/docs/stm32-hal-library-learning-serial-idle-interrupt.html
+ *      https://stackoverflow.com/questions/12543076/usart-receive-interrupt-stm32
+ *      https://deepbluembedded.com/stm32-usart-uart-tutorial/
  */
 #include <main.h>
 #include <console.h>
@@ -100,5 +102,5 @@ HAL_StatusTypeDef ConsoleRdLn(uint8_t *pData, uint8_t max_len ){
 		pData++;
 		cnt++;
 	}
+	return uart_status;
 }
-

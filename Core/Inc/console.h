@@ -31,4 +31,5 @@ void ConsoleWrDec(enum console_priority c_priority, char *pre_txt, uint16_t valu
 HAL_StatusTypeDef ConsoleRdChar( uint8_t *pData );
 HAL_StatusTypeDef ConsoleRdLn(uint8_t *pData, uint8_t max_len );
 
+
 #endif /* INC_CONSOLE_H_ */

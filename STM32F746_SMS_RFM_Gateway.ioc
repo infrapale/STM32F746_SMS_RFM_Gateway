@@ -2,7 +2,7 @@
 FREERTOS.BinarySemaphores01=MsgHandlerSema,Dynamic,NULL;SmsHandlerSema,Dynamic,NULL;RadioHandlerSema,Dynamic,NULL
 FREERTOS.FootprintOK=true
 FREERTOS.IPParameters=Tasks01,configUSE_PREEMPTION,FootprintOK,Queues01,Timers01,BinarySemaphores01
-FREERTOS.Queues01=SendRadioQueue,16,uint8_t,0,Dynamic,NULL,NULL;Queue02,16,Data,0,Dynamic,NULL,NULL;ReceiveRadioQueue,16,uint8_t,0,Dynamic,NULL,NULL;SendSmsQueue,16,uint8_t,0,Dynamic,NULL,NULL;ReceiveSmsQueue,16,uint8_t,0,Dynamic,NULL,NULL
+FREERTOS.Queues01=SendRadioQueue,16,uint8_t,0,Dynamic,NULL,NULL;Queue02,16,Data,0,Dynamic,NULL,NULL;ReceiveRadioQueue,16,uint8_t,0,Dynamic,NULL,NULL;SendSmsQueue,16,uint8_t,0,Dynamic,NULL,NULL;ReceiveSmsQueue,16,uint8_t,0,Dynamic,NULL,NULL;RawRxSmsQueue,16,uint8_t,0,Dynamic,NULL,NULL
 FREERTOS.Tasks01=defaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;SendRadio,24,128,StartSendRadio,Default,NULL,Dynamic,NULL,NULL;ReceiveRadio,32,128,StartReceiveRadio,Default,NULL,Dynamic,NULL,NULL;SendSms,8,128,StartSendSms,Default,NULL,Dynamic,NULL,NULL;ReceiveSms,8,128,StartReceiveSms,Default,NULL,Dynamic,NULL,NULL
 FREERTOS.Timers01=TimerScanKeypad,CallbackScanKeypad,osTimerPeriodic,Default,NULL,Dynamic,NULL
 FREERTOS.configUSE_PREEMPTION=0
@@ -54,7 +54,7 @@ Mcu.PinsNb=31
 Mcu.ThirdPartyNb=0
 Mcu.UserConstants=
 Mcu.UserName=STM32F746ZGTx
-MxCube.Version=6.1.0
+MxCube.Version=6.1.1
 MxDb.Version=DB.6.0.10
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false
 NVIC.DebugMonitor_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:false

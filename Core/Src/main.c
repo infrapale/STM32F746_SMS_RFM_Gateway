@@ -110,6 +110,11 @@ osMessageQueueId_t ReceiveSmsQueueHandle;
 const osMessageQueueAttr_t ReceiveSmsQueue_attributes = {
   .name = "ReceiveSmsQueue"
 };
+/* Definitions for RawRxSmsQueue */
+osMessageQueueId_t RawRxSmsQueueHandle;
+const osMessageQueueAttr_t RawRxSmsQueue_attributes = {
+  .name = "RawRxSmsQueue"
+};
 /* Definitions for TimerScanKeypad */
 osTimerId_t TimerScanKeypadHandle;
 const osTimerAttr_t TimerScanKeypad_attributes = {
@@ -195,18 +200,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   msg_initialize();
-  uint8_t cbuf[32];
+  //uint8_t cbuf[32];
   //uint8_t *pdata = cbuf;
   //HAL_StatusTypeDef uart_status;
 
-
+  /*
   ConsoleInitialize(&huart3);
-
   ConsoleWr(development, "https://github.com/infrapale/STM32F746_SMS_RFM_Gateway", 1);
   ConsoleWrDec(development, "Elaman tarkoitus on ", 42 ,".", 1);
 
   ConsoleWrDec(development, "Free messages= ", msg_free_rows(),".", 1);
-  /*ConsoleRdLn(pdata, 10 );
+  ConsoleRdLn(pdata, 10 );
   ConsoleWr(development, (char *)pdata, 1U);
 
   uart_status = ConsoleRdChar( pdata );
@@ -266,6 +270,9 @@ int main(void)
 
   /* creation of ReceiveSmsQueue */
   ReceiveSmsQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &ReceiveSmsQueue_attributes);
+
+  /* creation of RawRxSmsQueue */
+  RawRxSmsQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &RawRxSmsQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -373,11 +380,12 @@ static void MX_USART3_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART3_Init 0 */
+  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 
   /* USER CODE END USART3_Init 0 */
 
   /* USER CODE BEGIN USART3_Init 1 */
-
+  SET_BIT(huart3.Instance->CR1, USART_CR1_RXNEIE);
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
   huart3.Init.BaudRate = 115200;
@@ -394,6 +402,11 @@ static void MX_USART3_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART3_Init 2 */
+  //HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+  /* Disable the UART Parity Error Interrupt and RXNE interrupts */
+  SET_BIT(huart3.Instance->CR1, USART_CR1_RXNEIE);
+  //SET_BIT(huart3.Instance->CR1, USART_CR1_PEIE);
+
 
   /* USER CODE END USART3_Init 2 */
 
@@ -518,6 +531,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void AddSmsRxToQueue(uint8_t rx_c){
+	osMessagePut(RawRxSmsQueueHandle,rx_c,200);
+
+}
 
 /* USER CODE END 4 */
 
@@ -609,15 +626,16 @@ void StartReceiveSms(void *argument)
   /* USER CODE BEGIN StartReceiveSms */
     uint8_t  sms_in_buf[ MAX_MSG_LEN];
     uint8_t  c;
-    HAL_StatusTypeDef uart_status;
+    //HAL_StatusTypeDef uart_status;
 
-    ConsoleWr(development, "StartReceiveSms", 1);
+    //ConsoleWr(development, "StartReceiveSms", 1);
 	memset(sms_in_buf,0x00,sizeof(sms_in_buf));
 
 
 	/* Infinite loop */
 	for(;;)
 	{
+	c = (uint8_t)osMessageGet(RawRxSmsQueueHandle,10);
 		/*
 	    uart_status = HAL_UART_Receive(&huart3, sms_in_buf, 1, 0);
 	    switch (uart_status){

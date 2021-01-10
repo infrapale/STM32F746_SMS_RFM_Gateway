@@ -58,8 +58,8 @@ all: main-build
 main-build: STM32F746_SMS_RFM_Gateway.elf secondary-outputs
 
 # Tool invocations
-STM32F746_SMS_RFM_Gateway.elf: $(OBJS) $(USER_OBJS) C:\Users\tom_h\STM32CubeIDE\workspace_1.5.0\STM32F746_SMS_RFM_Gateway\STM32F746ZGTX_FLASH.ld
-	arm-none-eabi-gcc -o "STM32F746_SMS_RFM_Gateway.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\tom_h\STM32CubeIDE\workspace_1.5.0\STM32F746_SMS_RFM_Gateway\STM32F746ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32F746_SMS_RFM_Gateway.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+STM32F746_SMS_RFM_Gateway.elf: $(OBJS) $(USER_OBJS) C:\Users\tom_h\STM32CubeIDE\workspace_1.5.1\STM32F746_SMS_RFM_Gateway\STM32F746ZGTX_FLASH.ld
+	arm-none-eabi-gcc -o "STM32F746_SMS_RFM_Gateway.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\tom_h\STM32CubeIDE\workspace_1.5.1\STM32F746_SMS_RFM_Gateway\STM32F746ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32F746_SMS_RFM_Gateway.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

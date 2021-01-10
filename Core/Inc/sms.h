@@ -10,5 +10,4 @@
 
 void sms_rd_serial(void);
 
-
 #endif /* INC_SMS_H_ */

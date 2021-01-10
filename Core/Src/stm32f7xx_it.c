@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "sms.h"
+#include "uart_handler.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -168,11 +169,46 @@ void DebugMon_Handler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-  sms_rd_serial();
+  uint32_t isrflags   = READ_REG(huart3.Instance->ISR);
+  uint32_t cr1its     = READ_REG(huart3.Instance->CR1);
+  uint32_t errorflags;
+  uint8_t  rd_byte;
+
+  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+
+  /* If no error occurs */
+  errorflags = (isrflags & (uint32_t)(USART_ISR_PE | USART_ISR_FE | USART_ISR_ORE | USART_ISR_NE | USART_ISR_RTOF));
+  if (errorflags == 0U)
+  {
+    /* UART in mode Receiver ---------------------------------------------------*/
+    if (((isrflags & USART_ISR_RXNE) != 0U)
+        && ((cr1its & USART_CR1_RXNEIE) != 0U))
+    {
+      if (huart3.RxISR != NULL)
+      {
+        huart3.RxISR(&huart3);
+      }
+      return;
+    }
+  }
+
+
+  //sms_rd_serial();
+  if (0)
+  {
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-
+  }
+  else
+  {
+      //uart_handler_RxISR(&huart3);
+	  //HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+	  rd_byte =  (uint8_t) READ_REG(huart3.Instance->RDR);
+	  __HAL_UART_SEND_REQ(&huart3, UART_RXDATA_FLUSH_REQUEST);
+      SET_BIT(huart3.Instance->CR1, USART_CR1_RXNEIE);
+	  HAL_UART_Init(&huart3);
+  }
   /* USER CODE END USART3_IRQn 1 */
 }
 

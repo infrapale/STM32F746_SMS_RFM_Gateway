@@ -7,7 +7,6 @@
 
 #include <main.h>
 #include <msg.h>
-#include <console.h>
 #include <stdio.h>
 #include <string.h>
 
